@@ -10,7 +10,7 @@ conda activate fastapi
 pip install fastapi uvicorn[standard]
 pip install fastapi uvicorn[standard] pillow python-multipart
 
-#sam + yolo
+#sam + yolo (rb_server 밖에서 sam 설치)
 git clone https://github.com/facebookresearch/segment-anything.git
 cd segment-anything; pip install -e .
 pip install opencv-python pycocotools matplotlib onnxruntime onnx
