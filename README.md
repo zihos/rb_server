@@ -1,7 +1,11 @@
 # rb_server
+pth파일 다운받아서 `/weights`에 넣기
 
 sam vit-h pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)
-pt파일 다운받아서 `/weights`에 넣기
+
+sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
+
+
 
 ### conda setting
 ```
