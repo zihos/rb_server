@@ -11,7 +11,6 @@ sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_
 ```
 conda create -n fastapi python=3.10 -y
 conda activate fastapi
-pip install fastapi uvicorn[standard]
 pip install fastapi uvicorn[standard] pillow python-multipart
 
 #sam + yolo (rb_server 밖에서 sam 설치)
