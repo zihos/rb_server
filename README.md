@@ -35,7 +35,8 @@ LIBS += -lcurl
 ```
 
 ### mainwindow.cpp
-```void MainWindow::on_BTN_3D_RECONSTRUCTION_PAST_DATA_clicked() {
+```
+void MainWindow::on_BTN_3D_RECONSTRUCTION_PAST_DATA_clicked() {
     QString selectedDate = selectPastDataDate();
     if (selectedDate.isEmpty()) return;
 
