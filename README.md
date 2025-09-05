@@ -5,6 +5,14 @@ sam vit-h pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_
 
 sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
 
+**mobile sam**
+`main.py`에서 checkpoint경로 지정
+```
+SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/mobile_sam.pt")
+SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/mobile_sam_onnx_vit_t.onnx")
+SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_t")  # vit_h | vit_l | vit_b | vit_t
+```
+
 
 
 ### conda setting
