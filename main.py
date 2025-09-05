@@ -34,7 +34,7 @@ MAX_SIZE_MB = 30
 YOLO_WEIGHTS = os.environ.get("YOLO_WEIGHTS", "./weights/best.pt")
 SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
 SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/sam_onnx_example.onnx")
-SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b
+SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b | vit_t
 YOLO_CONF    = float(os.environ.get("YOLO_CONF", "0.5"))
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
