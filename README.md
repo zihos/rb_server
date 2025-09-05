@@ -6,6 +6,7 @@ sam vit-h pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_
 sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
 
 **mobile sam**
+
 `main.py`에서 checkpoint경로 지정
 ```
 SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/mobile_sam.pt")
