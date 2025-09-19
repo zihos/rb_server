@@ -32,8 +32,8 @@ ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
 MAX_SIZE_MB = 30
 
 YOLO_WEIGHTS = os.environ.get("YOLO_WEIGHTS", "./weights/best.pt")
-SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
-SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/sam_onnx_example.onnx")
+SAM_CKPT     = os.environ.get("SAM_CKPT", "/home/zio/segment-anything/sam_vit_h_4b8939.pth")
+SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/sam_onnx_vit_h.onnx")
 SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b | vit_t
 YOLO_CONF    = float(os.environ.get("YOLO_CONF", "0.5"))
 
@@ -65,8 +65,19 @@ async def upload_image(file: UploadFile = File(...)):
     global latest_image_bytes, latest_yolo_results, latest_masks_b64, latest_combined_b64
     latest_image_bytes = await file.read()
 
+    image_cv2 = np.frombuffer(latest_image_bytes, np.uint8)
+    image_cv2 = cv2.imdecode(image_cv2, cv2.IMREAD_COLOR)
+    print(image_cv2.shape)  # (height, width, channels)
+
+    gamma = 1.5  # >1.0 밝게, <1.0 어둡게
+    inv_gamma = 1.0 / gamma
+    table = np.array([(i / 255.0) ** inv_gamma * 255 for i in np.arange(256)]).astype("uint8")
+    gamma_corrected_image = cv2.LUT(image_cv2, table)
+    cv2.imwrite("./gamma_corrected_image.bmp", gamma_corrected_image)
     pil = Image.open(io.BytesIO(latest_image_bytes)).convert("RGB")
-    results = YOLO_MODEL.predict(pil, conf=YOLO_CONF, verbose=False)[0]
+    print(type(pil), type(image_cv2))
+
+    results = YOLO_MODEL.predict(gamma_corrected_image, conf=YOLO_CONF, verbose=False)[0]
     app.state.yolo_raw_results = results
 
     # YOLO 추론 결과 저장

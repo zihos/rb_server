@@ -32,8 +32,10 @@ pip install ultralytics
 
 ### sever start
 ```
+# import tensorrt
+export PYTHONPATH=$PYTHONPATH:/usr/lib/python3.10/dist-packages
 # server activate
-uvicorn main:app --reload
+uvicorn dice_main:app --reload
 ```
 
 ### QT .pro
