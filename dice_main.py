@@ -11,7 +11,33 @@ from ultralytics import YOLO
 import dice_utils
 from segment_anything import sam_model_registry, SamPredictor
 
+YOLO_WEIGHTS = os.environ.get("YOLO_WEIGHTS", "./weights/dice_best.engine")
+FASTSAM_TRT  = os.environ.get("FASTAM_TRT", "/home/nvidia/FastSam_Awsome_TensorRT/dice_dark_best.trt" )
+YOLO_CONF    = float(os.environ.get("YOLO_CONF", "0.5"))
 
+class Models:
+    def __init__(self):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # YOLO 초기화
+        self.yolo = YOLO(YOLO_WEIGHTS)
+
+        # FastSAM TRT 초기화
+        self.fastsam = dice_utils.FastSam(model_weights=FASTSAM_TRT)
+
+        # SAM 체크포인트 초기화
+        SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
+        SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/sam_onnx_example.onnx")
+        SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b
+
+        # PyTorch SAM 모델 초기화
+        self.sam_torch = sam_model_registry[SAM_TYPE](checkpoint=SAM_CKPT).to(self.device)
+        self.sam_torch.eval()
+
+        print(f"[Models] Initialized on {self.device}")
+        print(f"[Models] YOLO weights: {YOLO_WEIGHTS}")
+        print(f"[Models] FastSAM TRT engine: {FASTSAM_TRT}")
+        print(f"[Models] SAM checkpoint: {SAM_CKPT}, type: {SAM_TYPE}")
 
 def image_to_base64_bmp(binary_mask):
     pil = Image.fromarray(binary_mask)
@@ -25,33 +51,28 @@ def gamma_correction(image: np.ndarray, gamma: float = 1.5) -> np.ndarray:
     return cv2.LUT(image, table)
 
 # ---------------- Config ----------------
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
-MAX_SIZE_MB = 30
+# ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
+# MAX_SIZE_MB = 30
 
-YOLO_WEIGHTS = os.environ.get("YOLO_WEIGHTS", "./weights/dice_best.engine")
 # YOLO_WEIGHTS = os.environ.get("YOLO_WEIGHTS", "/mnt/ssd/dice_weights/dice_yolov8.engine")
 # FASTSAM_TRT  = os.environ.get("FASTAM_TRT", "/mnt/ssd/dice_weights/fastsam_dice.trt" )
-FASTSAM_TRT  = os.environ.get("FASTAM_TRT", "/home/nvidia/FastSam_Awsome_TensorRT/dice_dark_best.trt" )
-YOLO_CONF    = float(os.environ.get("YOLO_CONF", "0.5"))
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-print(DEVICE)
 
 # ---------------- Globals ----------------
-IMAGES = {}  # id -> {"bytes":..., "content_type":..., "filename":...}
-_id_counter = itertools.count(1)
+# IMAGES = {}  # id -> {"bytes":..., "content_type":..., "filename":...}
+# _id_counter = itertools.count(1)
 
-# YOLO
-YOLO_MODEL = YOLO(YOLO_WEIGHTS)
-FASTSAM_MODEL = dice_utils.FastSam(model_weights=FASTSAM_TRT)
+# # YOLO
+# YOLO_MODEL = YOLO(YOLO_WEIGHTS)
+# FASTSAM_MODEL = dice_utils.FastSam(model_weights=FASTSAM_TRT)
 
-SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
-SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/sam_onnx_example.onnx")
-SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b
-_sam_torch = sam_model_registry[SAM_TYPE](checkpoint=SAM_CKPT).to(DEVICE)
-_sam_torch.eval()
+# SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
+# SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/sam_onnx_example.onnx")
+# SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b
+# _sam_torch = sam_model_registry[SAM_TYPE](checkpoint=SAM_CKPT).to(DEVICE)
+# _sam_torch.eval()
 
 app = FastAPI()
+models = Models()
 
 @app.post("/image")
 async def upload_image(file: UploadFile = File(...)):
@@ -67,27 +88,27 @@ async def upload_image(file: UploadFile = File(...)):
     # gamma correction
     gamma_corrected_image = gamma_correction(image_cv2)
     cv2.imwrite("./gamma_corrected_image.bmp", gamma_corrected_image)
-    
+
     yolo_start=time.perf_counter()
-    results = YOLO_MODEL.predict(gamma_corrected_image, conf=YOLO_CONF, verbose=False)[0]
+    yolo_results = models.yolo.predict(gamma_corrected_image, conf=YOLO_CONF, verbose=False)[0]
     yolo_end=time.perf_counter()
     print(f"[YOLO] exec. time: {(yolo_end-yolo_start)*1000:.2f} ms, yolo results: {len(results)}")
 
-    app.state.yolo_raw_results = results
+    app.state.yolo_raw_results = yolo_results
 
     # YOLO 추론 결과 저장
-    if not results.boxes:
+    if not yolo_results.boxes:
         latest_yolo_results = {"message": "no objects detected"}
         latest_masks_b64 = []
         latest_combined_b64 = ""
         return {"message": "Image uploaded, but no objects detected."}
 
     # YOLO 결과 변환
-    xyxy = results.boxes.xyxy.cpu().numpy().tolist()
-    xywh = results.boxes.xywh.cpu().numpy().tolist()
-    clss  = results.boxes.cls.cpu().numpy().astype(int).tolist()
-    confs = results.boxes.conf.cpu().numpy().tolist()
-    names = results.names
+    xyxy = yolo_results.boxes.xyxy.cpu().numpy().tolist()
+    xywh = yolo_results.boxes.xywh.cpu().numpy().tolist()
+    clss  = yolo_results.boxes.cls.cpu().numpy().astype(int).tolist()
+    confs = yolo_results.boxes.conf.cpu().numpy().tolist()
+    names = yolo_results.names
 
     print(f"[YOLO] number of detected objects: {len(xyxy)}")
 
@@ -111,14 +132,14 @@ async def upload_image(file: UploadFile = File(...)):
     # fastsam trt engine inference start
     # image_cv2 = np.frombuffer(latest_image_bytes, np.uint8)
 
-    masks = FASTSAM_MODEL.segment(gamma_corrected_image, xyxy)
+    masks = models.fastsam.segment(gamma_corrected_image, xyxy)
 
     if masks == None:
         print("[FASTSAM] no masks detected")
         latest_masks_b64 = []
         latest_combined_b64 = []
 
-        return {"message": "No Masks !!!"}
+        return {"message": "No Masks detected!!!"}
     else:
         print("[FASTSAM] mask shape: ", masks.shape)
 
