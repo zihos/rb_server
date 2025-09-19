@@ -19,6 +19,11 @@ def image_to_base64_bmp(binary_mask):
     pil.save(buf, format="BMP")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
+def gamma_correction(image: np.ndarray, gamma: float = 1.5) -> np.ndarray:
+    inv_gamma = 1.0 / gamma
+    table = np.array([(i/255.0)**inv_gamma * 255 for i in np.arange(256)]).astype("uint8")
+    return cv2.LUT(image, table)
+
 # ---------------- Config ----------------
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
 MAX_SIZE_MB = 30
@@ -60,11 +65,9 @@ async def upload_image(file: UploadFile = File(...)):
     print(image_cv2.shape)
 
     # gamma correction
-    gamma=1.5
-    inv_gamma = 1.0 / gamma
-    table = np.array([(i/255.0)**inv_gamma * 255 for i in np.arange(256)]).astype("uint8")
-    gamma_corrected_image = cv2.LUT(image_cv2, table)
+    gamma_corrected_image = gamma_correction(image_cv2)
     cv2.imwrite("./gamma_corrected_image.bmp", gamma_corrected_image)
+    
     yolo_start=time.perf_counter()
     results = YOLO_MODEL.predict(gamma_corrected_image, conf=YOLO_CONF, verbose=False)[0]
     yolo_end=time.perf_counter()
