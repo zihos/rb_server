@@ -65,76 +65,120 @@ void MainWindow::on_BTN_3D_RECONSTRUCTION_PAST_DATA_clicked() {
     bool useGPU = config.useGPU;
 
 
-    // 2. 비동기: AI 서버 요청
-    QFuture<cv::Mat> futureSAM = QtConcurrent::run([=]() -> cv::Mat {
-        QElapsedTimer timer;
-        timer.start();
-        qDebug() << "[SAM] start for preparing masked image" << timer.elapsed() <<"ms";
-
-
-        ImageInferenceClient client("http://127.0.0.1:8000");
-        client.sendImage(imageFilePath);
-
-
-        QJsonObject sam = client.fetchSAMResults();
-        if (!sam.contains("combined_mask_b64")) return {};
-
-
-        QByteArray img_data = QByteArray::fromBase64(sam["combined_mask_b64"].toString().toUtf8());
-        std::vector<uchar> data(img_data.begin(), img_data.end());
-        cv::Mat decoded_img = cv::imdecode(data, cv::IMREAD_GRAYSCALE);
-        qDebug() << "[SAM] ready for masked image" << timer.elapsed() <<"ms";
-        return decoded_img;
-    });
-
+    // Get JIG transform matrix if active
+    cv::Mat jigTransform;
+    if (m_jigTransformActive && !m_jigTransform.empty()) {
+        jigTransform = m_jigTransform;
+        qDebug() << "JIG transform is active, will apply to 3D reconstruction";
+    }
 
     // 1. 비동기: 3D Reconstruction
     QFuture<void> future3D = QtConcurrent::run([=]() {
         if (useGPU)
-            mReconstruct3D.Perform3DReconstructionGPU(dataPath);
+            mReconstruct3D.Perform3DReconstructionGPU(dataPath, jigTransform);
         else
-            mReconstruct3D.Perform3DReconstruction(dataPath);
+            mReconstruct3D.Perform3DReconstruction(dataPath, jigTransform);
     });
 
-
-
-
-    // 3. 완료 감지
-    QFutureWatcher<cv::Mat>* watcher = new QFutureWatcher<cv::Mat>(this);
-    connect(watcher, &QFutureWatcher<cv::Mat>::finished, this, [=]() {
-        watcher->deleteLater();  // clean up
+    // 2. 비동기: SAM 서버 요청
+    QFuture<cv::Mat> futureSAM = QtConcurrent::run([=]() -> cv::Mat {
         QElapsedTimer timer;
         timer.start();
+        qDebug() << "[SAM] start for preparing masked image" << timer.elapsed() << "ms";
 
+        // 예: 서버 호출 · 결과 수신
+        ImageInferenceClient client("http://127.0.0.1:8000");
+//        client.sendImage("/mnt/ssd/pattern_19/pattern_19_5.bmp");
+        client.sendImage(imageFilePath);
+        QJsonObject sam = client.fetchSAMResults();
 
-        // futureSAM 결과 받기
-        m2DMaskImage = futureSAM.result();
+        qDebug() << "[SAM] receive results, num of generated masks:" << sam["num_instances"].toInt();
 
-
-        if (m2DMaskImage.empty()) {
-            QMessageBox::warning(this, "Error", "Failed to decode mask image");
-            return;
+        // 2-1) 마스크 없음 → 검은 이미지 반환 (원본 크기와 동일)
+        if (!sam.contains("num_instances") || sam["num_instances"].toInt() == 0) {
+            cv::Mat orig = cv::imread(imageFilePath);
+            if (orig.empty()) {
+                // 원본도 못 읽으면 안전한 기본 크기
+                return cv::Mat(480, 640, CV_8UC1, cv::Scalar(0));
+            }
+            qDebug() << "[SAM] No mask instances, returning black image ->"
+                     << orig.rows << "x" << orig.cols;
+            return cv::Mat(orig.rows, orig.cols, CV_8UC1, cv::Scalar(0));
         }
 
+        // 2-2) 마스크 있음 → base64 디코드
+        if (sam.contains("combined_mask_b64")) {
+            QByteArray img_b64 = sam["combined_mask_b64"].toString().toUtf8();
+            QByteArray raw = QByteArray::fromBase64(img_b64);
 
-        // threshold + flag
-        cv::threshold(m2DMaskImage, m2DMaskImage, 127, 255, cv::THRESH_BINARY);
-        mHas2DMask = true;
+            std::vector<uchar> buf(raw.begin(), raw.end());
+            cv::Mat decoded = cv::imdecode(buf, cv::IMREAD_GRAYSCALE);
+            if (decoded.empty()) {
+                // 디코드 실패 → 검은 이미지 폴백
+                cv::Mat orig = cv::imread(imageFilePath);
+                if (orig.empty()) return cv::Mat(480, 640, CV_8UC1, cv::Scalar(0));
+                qDebug() << "[SAM] decode failed, returning black image";
+                return cv::Mat(orig.rows, orig.cols, CV_8UC1, cv::Scalar(0));
+            }
+            qDebug() << "[SAM] ready for masked image" << timer.elapsed() << "ms";
+            return decoded;
+        }
 
-
-        qDebug() << "[SAM] Masked Image Decoded ";
-
-
-
-
-        // 4. 이후는 동기적으로 처리
-        display2DMaskImage();
-        apply2DMaskToPointCloud();
-        qDebug() << "[SAM] Masked Image Applied."<< timer.elapsed() <<"ms";
+        // 2-3) 필드 자체가 없으면 폴백
+        cv::Mat orig = cv::imread(imageFilePath);
+        if (orig.empty()) return cv::Mat(480, 640, CV_8UC1, cv::Scalar(0));
+        qDebug() << "[SAM] mask field missing, returning black image";
+        return cv::Mat(orig.rows, orig.cols, CV_8UC1, cv::Scalar(0));
     });
 
+    // futureSAM 결과 받기
+    m2DMaskImage = futureSAM.result();
 
-    // 4. 시작
-    watcher->setFuture(futureSAM);
+
+    if (m2DMaskImage.empty()) {
+        QMessageBox::warning(this, "Error", "Failed to decode mask image");
+        return;
+    }
+
+
+    // threshold + flag
+    cv::threshold(m2DMaskImage, m2DMaskImage, 127, 255, cv::THRESH_BINARY);
+    mHas2DMask = true;
+
+
+    qDebug() << "[SAM] Masked Image Decoded ";
+
+
+    // display 2d mask image on the preview window
+    display2DMaskImage();
+
+    // 3. 완료 감지: watcher 두 개 + 카운터
+    auto *watcherSAM = new QFutureWatcher<cv::Mat>(this);
+    auto *watcher3D  = new QFutureWatcher<void>(this);
+
+    // 남은 작업 개수. shared_ptr로 안전하게 관리
+    auto remaining = std::make_shared<int>(2);
+
+    auto tryProceed = [=]() mutable {
+        (*remaining)--;
+        if (*remaining > 0) return;  // 아직 하나 남음
+
+        QElapsedTimer timer; timer.start();
+
+        // 4. 이후는 동기 처리 (UI 갱신 등)
+        apply2DMaskToPointCloud();
+        qDebug() << "[SAM] Masked Image Applied." << timer.elapsed() << "ms";
+
+        // 정리
+        watcherSAM->deleteLater();
+        watcher3D->deleteLater();
+    };
+
+    // 4. 시그널 연결 + 감시 시작
+    connect(watcherSAM, &QFutureWatcher<cv::Mat>::finished, this, tryProceed);
+    connect(watcher3D,  &QFutureWatcher<void>::finished,   this, tryProceed);
+
+    watcherSAM->setFuture(futureSAM);
+    watcher3D->setFuture(future3D);
 }
 ```
