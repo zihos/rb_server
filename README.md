@@ -10,7 +10,6 @@ sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_
 `main.py`에서 checkpoint경로 지정
 ```
 SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/mobile_sam.pt")
-SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/mobile_sam_onnx_vit_t.onnx")
 SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_t")  # vit_h | vit_l | vit_b | vit_t
 ```
 
@@ -21,6 +20,7 @@ SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_t")  # vit_h | vit_l | vit_b | vi
 conda create -n fastapi python=3.10 -y
 conda activate fastapi
 pip install fastapi uvicorn[standard] pillow python-multipart
+git clone 
 
 #sam + yolo (rb_server 밖에서 sam 설치)
 git clone https://github.com/facebookresearch/segment-anything.git
