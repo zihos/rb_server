@@ -1,11 +1,19 @@
 # rb_server
+
+### conda setting
+```
+conda create -n fastapi python=3.10 -y
+conda activate fastapi
+git clone https://github.com/zihos/rb_server.git
+pip install fastapi uvicorn[standard] pillow python-multipart
+```
+
 pth파일 다운받아서 `/weights`에 넣기
 
 sam vit-h pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)
 
 sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
 
-**mobile sam**
 
 `main.py`에서 checkpoint경로 지정
 ```
@@ -13,16 +21,8 @@ SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/mobile_sam.pt")
 SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_t")  # vit_h | vit_l | vit_b | vit_t
 ```
 
-
-
-### conda setting
+### sam + yolo (rb_server 밖에서 sam 설치)
 ```
-conda create -n fastapi python=3.10 -y
-conda activate fastapi
-pip install fastapi uvicorn[standard] pillow python-multipart
-git clone https://github.com/zihos/rb_server.git
-
-#sam + yolo (rb_server 밖에서 sam 설치)
 git clone https://github.com/facebookresearch/segment-anything.git
 cd segment-anything; pip install -e .
 pip install opencv-python pycocotools matplotlib onnxruntime onnx
