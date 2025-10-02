@@ -2,8 +2,9 @@
 
 ### conda setting
 ```
-conda create -n fastapi python=3.10 -y
-conda activate fastapi
+conda create -n rb_server python=3.10 -y
+conda activate rb_server
+cd ~
 git clone https://github.com/zihos/rb_server.git
 pip install fastapi uvicorn[standard] pillow python-multipart
 ```
@@ -17,12 +18,13 @@ sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_
 
 `main.py`에서 checkpoint경로 지정
 ```
-SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/mobile_sam.pt")
-SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_t")  # vit_h | vit_l | vit_b | vit_t
+SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
+SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b | vit_t
 ```
 
-### sam + yolo (rb_server 밖에서 sam 설치)
+### sam + yolo installation
 ```
+cd ~
 git clone https://github.com/facebookresearch/segment-anything.git
 cd segment-anything; pip install -e .
 pip install opencv-python pycocotools matplotlib onnxruntime onnx
