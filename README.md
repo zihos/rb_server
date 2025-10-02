@@ -9,14 +9,13 @@ git clone https://github.com/zihos/rb_server.git
 pip install fastapi uvicorn[standard] pillow python-multipart
 ```
 
-pth파일 다운받아서 `/weights`에 넣기
+.pth파일 다운받아서 `/weights`에 넣기
 
-sam vit-h pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)
+* sam vit-h pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)
+* sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
 
-sam vit-b pt [download](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
 
-
-`main.py`에서 checkpoint경로 지정
+`dice_main.py`에서 checkpoint경로 지정
 ```
 SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
 SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b | vit_t
@@ -32,9 +31,9 @@ pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https
 pip install ultralytics
 ```
 
-to do 
+To Do
 
-[] fastsam installation update
+- [ ] fastsam installation update
 
 
 ### sever start
