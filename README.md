@@ -20,7 +20,7 @@ SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_t")  # vit_h | vit_l | vit_b | vi
 conda create -n fastapi python=3.10 -y
 conda activate fastapi
 pip install fastapi uvicorn[standard] pillow python-multipart
-git clone 
+git clone https://github.com/zihos/rb_server.git
 
 #sam + yolo (rb_server 밖에서 sam 설치)
 git clone https://github.com/facebookresearch/segment-anything.git
