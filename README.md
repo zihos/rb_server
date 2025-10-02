@@ -26,9 +26,14 @@ pip install fastapi uvicorn[standard] pillow python-multipart
 git clone https://github.com/facebookresearch/segment-anything.git
 cd segment-anything; pip install -e .
 pip install opencv-python pycocotools matplotlib onnxruntime onnx
-pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu128
+pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 pip install ultralytics
 ```
+
+to do 
+
+[] fastsam installation update
+
 
 ### sever start
 ```

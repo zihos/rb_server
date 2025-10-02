@@ -1,7 +1,7 @@
 # upload -> predict -> inference
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from PIL import Image
-import io, os, itertools, base64, time
+import io, os, base64, time
 
 import torch
 import numpy as np
@@ -9,7 +9,7 @@ import cv2
 
 from ultralytics import YOLO
 import dice_utils
-from segment_anything import sam_model_registry, SamPredictor
+from segment_anything import sam_model_registry
 
 YOLO_WEIGHTS = os.environ.get("YOLO_WEIGHTS", "./weights/dice_best.engine")
 FASTSAM_TRT  = os.environ.get("FASTAM_TRT", "/home/nvidia/FastSam_Awsome_TensorRT/dice_dark_best.trt" )
@@ -27,7 +27,6 @@ class Models:
 
         # SAM 체크포인트 초기화
         SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
-        SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/sam_onnx_example.onnx")
         SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b
 
         # PyTorch SAM 모델 초기화
@@ -50,26 +49,6 @@ def gamma_correction(image: np.ndarray, gamma: float = 1.5) -> np.ndarray:
     table = np.array([(i/255.0)**inv_gamma * 255 for i in np.arange(256)]).astype("uint8")
     return cv2.LUT(image, table)
 
-# ---------------- Config ----------------
-# ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
-# MAX_SIZE_MB = 30
-
-# YOLO_WEIGHTS = os.environ.get("YOLO_WEIGHTS", "/mnt/ssd/dice_weights/dice_yolov8.engine")
-# FASTSAM_TRT  = os.environ.get("FASTAM_TRT", "/mnt/ssd/dice_weights/fastsam_dice.trt" )
-
-# ---------------- Globals ----------------
-# IMAGES = {}  # id -> {"bytes":..., "content_type":..., "filename":...}
-# _id_counter = itertools.count(1)
-
-# # YOLO
-# YOLO_MODEL = YOLO(YOLO_WEIGHTS)
-# FASTSAM_MODEL = dice_utils.FastSam(model_weights=FASTSAM_TRT)
-
-# SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
-# SAM_ONNX     = os.environ.get("SAM_ONNX", "./weights/sam_onnx_example.onnx")
-# SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b
-# _sam_torch = sam_model_registry[SAM_TYPE](checkpoint=SAM_CKPT).to(DEVICE)
-# _sam_torch.eval()
 
 app = FastAPI()
 models = Models()
@@ -80,7 +59,6 @@ async def upload_image(file: UploadFile = File(...)):
     global latest_image_bytes, latest_yolo_results, latest_masks_b64, latest_combined_b64
     
     latest_image_bytes = await file.read()
-    # pil = Image.open(io.BytesIO(latest_image_bytes)).convert("RGB")
     image_cv2 = np.frombuffer(latest_image_bytes, np.uint8)
     image_cv2 = cv2.imdecode(image_cv2, cv2.IMREAD_COLOR)
     print(image_cv2.shape)
@@ -130,8 +108,6 @@ async def upload_image(file: UploadFile = File(...)):
     }
 
     # fastsam trt engine inference start
-    # image_cv2 = np.frombuffer(latest_image_bytes, np.uint8)
-
     masks = models.fastsam.segment(gamma_corrected_image, xyxy)
 
     if masks == None:
