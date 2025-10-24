@@ -39,7 +39,7 @@ To Do
 
 ### sever start
 ```
-# import tensorrt
+# import tensorrt (if model is tensorrt format)
 export PYTHONPATH=$PYTHONPATH:/usr/lib/python3.10/dist-packages
 # server activate
 uvicorn dice_main:app --reload
