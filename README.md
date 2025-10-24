@@ -31,7 +31,13 @@ pip install opencv-python pycocotools matplotlib onnxruntime onnx
 pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 pip install ultralytics
 ```
-
+### fastsam installation
+[fastsam repository](https://github.com/CASIA-IVA-Lab/FastSAM?tab=readme-ov-file)
+```
+git clone https://github.com/CASIA-IVA-Lab/FastSAM.git
+cd FastSAM
+pip install -r requirements.txt
+```
 To Do
 
 - [ ] fastsam installation update
