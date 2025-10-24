@@ -49,6 +49,14 @@ uvicorn dice_main:app --reload
 ```
 
 ### TensorRT
+**Convert YOLO Model to TensorRT**
+```
+# Export a YOLO11n PyTorch model to TensorRT format using Ultralytics
+yolo export model=<model_name>.pt format=engine # example 'yolo11n.engine''
+```
+Refer from [https://docs.ultralytics.com/integrations/tensorrt/#cli_1](https://docs.ultralytics.com/integrations/tensorrt/#cli_1]
+
+**Convert FASTSam Model to TensorRT**
 **Refer from** [FastSam_Awsome_TensorRT](https://github.com/ChuRuaNh0/FastSam_Awsome_TensorRT)
 
 ### QT .pro
