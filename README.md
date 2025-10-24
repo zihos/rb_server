@@ -17,6 +17,7 @@ pip install fastapi uvicorn[standard] pillow python-multipart
 
 `dice_main.py`에서 checkpoint경로 지정
 ```
+# SAM 체크포인트 초기화
 SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
 SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b | vit_t
 ```
