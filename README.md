@@ -1,6 +1,6 @@
 # rb_server
 
-### conda setting
+### [1] conda setting
 ```
 conda create -n rb_server python=3.10 -y
 conda activate rb_server
@@ -22,7 +22,7 @@ SAM_CKPT     = os.environ.get("SAM_CKPT", "./weights/sam_vit_h_4b8939.pth")
 SAM_TYPE     = os.environ.get("SAM_TYPE", "vit_h")  # vit_h | vit_l | vit_b | vit_t
 ```
 
-### sam + yolo installation
+### [2] sam + yolo installation
 ```
 cd ~
 git clone https://github.com/facebookresearch/segment-anything.git
@@ -32,7 +32,7 @@ pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https
 pip install ultralytics
 ```
 
-### fastsam installation
+### [3] fastsam installation
 **Refer from** [fastsam repository](https://github.com/CASIA-IVA-Lab/FastSAM?tab=readme-ov-file)
 ```
 git clone https://github.com/CASIA-IVA-Lab/FastSAM.git
@@ -40,7 +40,7 @@ cd FastSAM
 pip install -r requirements.txt
 ```
 
-### sever start
+### [4] sever start
 ```
 # import tensorrt (if model is tensorrt format)
 export PYTHONPATH=$PYTHONPATH:/usr/lib/python3.10/dist-packages
@@ -48,7 +48,7 @@ export PYTHONPATH=$PYTHONPATH:/usr/lib/python3.10/dist-packages
 uvicorn dice_main:app --reload
 ```
 
-### TensorRT
+### [5] TensorRT (if use)
 * **Convert YOLO Model to TensorRT**
 
   Refer from [https://docs.ultralytics.com/integrations/tensorrt/#cli_1](https://docs.ultralytics.com/integrations/tensorrt/#cli_1)
@@ -63,19 +63,26 @@ yolo export model=<model_name>.pt format=engine # example 'yolo11n.engine''
     Refer from [FastSam_Awsome_TensorRT](https://github.com/ChuRuaNh0/FastSam_Awsome_TensorRT)
 
 
-### QT .pro
+### [6] QT .pro
 ```
 QT += concurrent
 QT += network
 LIBS += -lcurl
 ```
 
-### mainwindow.h
+#### mainwindow.h
+
+add header file
 ```
 #include "image_inference_client.h"
 ```
 
-### mainwindow.cpp
+#### mainwindow.cpp
+
+connect server and request inference results
+* POST /image : send image to server
+* GET /yolo : request yolo results of detected objects
+* GET /masks : Request the masked images of the detected objects (instance-segmentation results)
 ```
 void MainWindow::on_BTN_3D_RECONSTRUCTION_PAST_DATA_clicked() {
     QString selectedDate = selectPastDataDate();
