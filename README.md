@@ -33,7 +33,7 @@ pip install ultralytics
 ```
 
 ### [3] fastsam installation
-**Refer from** [fastsam repository](https://github.com/CASIA-IVA-Lab/FastSAM?tab=readme-ov-file)
+**Refer from** [https://github.com/CASIA-IVA-Lab/FastSAM?tab=readme-ov-file](https://github.com/CASIA-IVA-Lab/FastSAM?tab=readme-ov-file)
 ```
 git clone https://github.com/CASIA-IVA-Lab/FastSAM.git
 cd FastSAM
